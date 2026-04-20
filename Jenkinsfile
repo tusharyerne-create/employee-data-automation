@@ -7,12 +7,6 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                git 'https://github.com/tusharyerne-create/employee-data-automation.git'
-            }
-        }
-
         stage('Build Maven') {
             steps {
                 sh 'mvn clean package -DskipTests'
