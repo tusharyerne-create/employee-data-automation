@@ -9,13 +9,13 @@ pipeline {
 
         stage('Build Maven') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                bat 'mvn clean package -DskipTests'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                bat 'docker build -t %IMAGE_NAME% .'
             }
         }
 
@@ -26,14 +26,14 @@ pipeline {
                     usernameVariable: 'USER',
                     passwordVariable: 'PASS'
                 )]) {
-                    sh 'echo $PASS | docker login -u $USER --password-stdin'
+                    bat 'echo %PASS% | docker login -u %USER% --password-stdin'
                 }
             }
         }
 
         stage('Push Image') {
             steps {
-                sh 'docker push $IMAGE_NAME'
+                bat 'docker push %IMAGE_NAME%'
             }
         }
     }
