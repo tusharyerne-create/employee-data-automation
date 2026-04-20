@@ -1,11 +1,21 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven3'
+    }
+
     environment {
         IMAGE_NAME = "admintushar/employee-app"
     }
 
     stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
 
         stage('Build Maven') {
             steps {
@@ -26,7 +36,9 @@ pipeline {
                     usernameVariable: 'USER',
                     passwordVariable: 'PASS'
                 )]) {
-                    bat 'echo %PASS% | docker login -u %USER% --password-stdin'
+                    bat '''
+                    echo %PASS% | docker login -u %USER% --password-stdin
+                    '''
                 }
             }
         }
