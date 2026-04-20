@@ -2,14 +2,14 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "your-dockerhub-username/employee-app"
+        IMAGE_NAME = "admintushar/employee-app"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                git 'https://github.com/your-username/employee-data-automation.git'
+                git 'https://github.com/tusharyerne-create/employee-data-automation.git'
             }
         }
 
