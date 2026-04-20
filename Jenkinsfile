@@ -1,19 +1,24 @@
 pipeline {
     agent any
 
+    environment {
+        JAVA_HOME = "C:\\Program Files\\Java\\jdk-17"
+        PATH = "C:\\Program Files\\Java\\jdk-17\\bin;${env.PATH}"
+        IMAGE_NAME = "admintushar/employee-app"
+    }
+
     tools {
         maven 'Maven3'
     }
 
-    environment {
-        IMAGE_NAME = "admintushar/employee-app"
-    }
-
     stages {
 
-        stage('Checkout') {
+        stage('Verify Java') {
             steps {
-                checkout scm
+                bat '''
+                java -version
+                mvn -v
+                '''
             }
         }
 
@@ -25,7 +30,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                bat "docker build -t ${IMAGE_NAME} ."
+                bat 'docker build -t %IMAGE_NAME% .'
             }
         }
 
@@ -36,16 +41,14 @@ pipeline {
                     usernameVariable: 'USER',
                     passwordVariable: 'PASS'
                 )]) {
-                    bat """
-                        echo %PASS% | docker login -u %USER% --password-stdin
-                    """
+                    bat 'echo %PASS% | docker login -u %USER% --password-stdin'
                 }
             }
         }
 
         stage('Push Image') {
             steps {
-                bat "docker push ${IMAGE_NAME}"
+                bat 'docker push %IMAGE_NAME%'
             }
         }
     }
