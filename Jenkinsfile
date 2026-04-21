@@ -1,21 +1,22 @@
 pipeline {
   agent any
+
   tools {
-        maven 'Maven-3.9.9'
-        jdk 'JDK-17'
-    }
+    maven 'Maven-3.9.9'
+    jdk 'JDK-17'
+  }
+
   environment {
     DOCKER_IMAGE = 'admintushar/employee-app'
     DOCKER_TAG = "${BUILD_NUMBER}"
-    DOCKER_CREDS = credentials('dockerhubs-creds')
   }
 
   stages {
+
     stage('Checkout') {
       steps {
         git branch: 'main',
             url: 'https://github.com/tusharyerne-create/employee-data-automation'
-            
       }
     }
 
@@ -40,25 +41,26 @@ pipeline {
     stage('Docker Push') {
       steps {
         withCredentials([usernamePassword(
-            credentialsId: 'dockerhub-credentials',
-            usernameVariable: 'DOCKER_USER',
-            passwordVariable: 'DOCKER_PASS'
-        )]){
-            bat """
-            docker login -u %DOCKER_USER% -p %DOCKER_PASS%
-            docker push %DOCKER_IMAGE%:%DOCKER_TAG%
-            docker push %DOCKER_IMAGE%:latest
-            """
+          credentialsId: 'dockerhub-credentials',
+          usernameVariable: 'DOCKER_USER',
+          passwordVariable: 'DOCKER_PASS'
+        )]) {
+          bat """
+          docker login -u %DOCKER_USER% -p %DOCKER_PASS%
+          docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+          docker push ${DOCKER_IMAGE}:latest
+          """
         }
       }
     }
 
     stage('Deploy') {
       steps {
-        
-        bat "docker stop springboot-app || exit 0"
-        bat "docker rm springboot-app || exit 0"
-        bat "docker run -d -p 9090:8080 --name springboot-app %DOCKER_IMAGE%:latest"
+        bat """
+        docker stop springboot-app || exit 0
+        docker rm springboot-app || exit 0
+        docker run -d -p 9090:8080 --name springboot-app ${DOCKER_IMAGE}:latest
+        """
       }
     }
   }
