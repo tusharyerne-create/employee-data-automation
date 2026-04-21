@@ -1,72 +1,81 @@
 pipeline {
-  agent any
+    agent any
 
-  tools {
-    maven 'Maven-3.9.9'
-    jdk 'JDK-17'
-  }
-
-  environment {
-    DOCKER_IMAGE = 'admintushar/employee-app'
-    DOCKER_TAG = "${BUILD_NUMBER}"
-  }
-
-  stages {
-
-    stage('Checkout') {
-      steps {
-        git branch: 'main',
-            url: 'https://github.com/tusharyerne-create/employee-data-automation'
-      }
+    tools {
+        maven 'Maven3'
     }
 
-    stage('Build & Test') {
-      steps {
-        bat 'mvn clean test'
-      }
-      post {
-        always {
-          junit '**/target/surefire-reports/*.xml'
+    environment {
+        JAVA_HOME = "C:\\Program Files\\Java\\jdk-17"
+        PATH = "C:\\Program Files\\Java\\jdk-17\\bin;${env.PATH}"
+        IMAGE_NAME = "admintushar/employee-app"
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+
+    stages {
+
+        stage('Verify Java') {
+            steps {
+                bat '''
+                java -version
+                mvn -v
+                '''
+            }
         }
-      }
-    }
 
-    stage('Docker Build') {
-      steps {
-        bat "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
-        bat "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest"
-      }
-    }
-
-    stage('Docker Push') {
-      steps {
-        withCredentials([usernamePassword(
-          credentialsId: 'dockerhub-credentials',
-          usernameVariable: 'DOCKER_USER',
-          passwordVariable: 'DOCKER_PASS'
-        )]) {
-          bat """
-          docker login -u %DOCKER_USER% -p %DOCKER_PASS%
-          docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
-          docker push ${DOCKER_IMAGE}:latest
-          """
+        stage('Build Maven') {
+            steps {
+                bat 'mvn clean package -DskipTests'
+            }
         }
-      }
+
+        stage('Build Docker Image') {
+            steps {
+                bat """
+                docker build -t %IMAGE_NAME%:%IMAGE_TAG% .
+                docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:latest
+                """
+            }
+        }
+
+        stage('Login Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'USER',
+                    passwordVariable: 'PASS'
+                )]) {
+                    bat 'echo %PASS% | docker login -u %USER% --password-stdin'
+                }
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                bat """
+                docker push %IMAGE_NAME%:%IMAGE_TAG%
+                docker push %IMAGE_NAME%:latest
+                """
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                bat """
+                docker stop springboot-app || exit 0
+                docker rm springboot-app || exit 0
+                docker run -d -p 9090:8080 --name springboot-app %IMAGE_NAME%:latest
+                """
+            }
+        }
     }
 
-    stage('Deploy') {
-      steps {
-        bat """
-        docker stop springboot-app || exit 0
-        docker rm springboot-app || exit 0
-        docker run -d -p 9090:8080 --name springboot-app ${DOCKER_IMAGE}:latest
-        """
-      }
+    post {
+        success {
+            echo '✅ Pipeline succeeded!'
+        }
+        failure {
+            echo '❌ Pipeline failed — check logs!'
+        }
     }
-  }
-
-  post {
-    success { echo 'Pipeline succeeded!' }
-    failure { echo 'Pipeline failed — check logs!' }
-  }
 }
